@@ -34,6 +34,40 @@ into a background color taken from the artwork's bottom edge, with the page
 switched to light or dark to read on it (iOS 26's glass bars adapt by
 themselves).
 
+## Publishing
+
+Albums is listed in Kayden's Source (apps.kaydenpmd.net) next to Ammy. That
+source is `public/source.json` in **Ammy's** repo, served by Cloudflare Pages.
+Every push to `main` here that can change the app runs `publish-source.yml`:
+build (via `build-ipa.yml`), a GitHub Release here that hosts the `.ipa`, then
+a checkout of Ammy's repo and a run of Ammy's `scripts/build_source.py` with
+Ammy's source-wide settings and this repo's `source.config.json` app block.
+Pushing to `main` is releasing, and the commit message is What's New.
+
+The push into Ammy's repo uses the `SOURCE_DEPLOY_KEY` secret, an SSH deploy
+key with write access to kaydenpmd/Ammy only (created 25 Oct 2026). This repo
+is public because the `.ipa` has to download without a login, the same reason
+Ammy's is.
+
+`source.config.json`'s `appPermissions.entitlements` must list every
+entitlement in the app and its extension. AltStore refuses to install an app
+with one the source didn't declare ("undeclared permissions"). SideStore runs
+the same check (`VerifyAppOperation`) only for sources with `"version": 2` or
+higher, and Kayden's Source has no `version` key, so today SideStore skips it.
+Don't read a SideStore install failure as a missing entitlement for that
+reason. Add an entitlement in `project.yml` and it goes in the list too.
+
+**The share extension and the free tier.** On current iOS, app extensions count
+toward a free Apple ID's three active apps (SideStore's
+`activeAppLimitIncludesExtensions`), so SideStore offers to strip Albums'
+extension at install. Stripping it removes the share sheet entry.
+"Keep App Extensions (Use Main Profile)" signs the extension with the app's
+own profile, so it takes no extra slot next to SideStore and Ammy. Whether the
+share extension and App Group work that way is unverified on a phone; if they
+don't, "Register App ID for Each Extension" does, at the cost of a slot.
+Publishing runs one at a time (`concurrency` in `publish-source.yml`) and only
+from `main`.
+
 ## The App Group under SideStore
 
 This is the part that is easy to break without noticing.

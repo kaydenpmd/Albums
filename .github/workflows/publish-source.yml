@@ -1,0 +1,176 @@
+name: Publish to Kayden's Source
+
+# Every push to main that can change the app is a release, as in Ammy: this
+# builds an IPA, publishes it as a GitHub Release here (which is what hosts the
+# file), and adds it to Kayden's Source, the public/source.json in Ammy's repo
+# that Cloudflare Pages serves at apps.kaydenpmd.net.
+#
+# Writing to Ammy's repo takes the SOURCE_DEPLOY_KEY secret: an SSH deploy key
+# that can push to kaydenpmd/Ammy and nothing else, created 25 Oct 2026. If it
+# is ever removed or rotated, the Release still publishes and only the
+# "Add to the source" step fails.
+#
+# MARKETING_VERSION in project.yml is the only version number a human sets.
+# Leave it alone and every push publishes another build of the same version;
+# the source keeps only the newest build of each version.
+
+on:
+  push:
+    branches: [main]
+    # None of these change the app.
+    paths-ignore:
+      - "**.md"
+      - "scripts/**"
+      - "source.config.json"
+  # To publish by hand, e.g. after editing source.config.json, which
+  # paths-ignore keeps from releasing on its own.
+  workflow_dispatch:
+
+# One publish at a time, in push order. Builds take different times, and
+# build_source.py replaces a version's entry with whichever build arrives
+# last, so two overlapping runs could put an older build back over a newer
+# one. A run waiting behind another is replaced by a newer one, which is fine:
+# the newer run contains its commits.
+concurrency:
+  group: publish-source
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # Only main is released. A by-hand run on another branch would otherwise
+  # publish that branch to every subscriber; to build one without releasing
+  # it, run build-ipa.yml by hand instead.
+  build:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/build-ipa.yml
+
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    # No Xcode from here on, and Linux minutes are the cheap ones.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # GitHub Releases need a tag; nothing reads it back.
+      - name: Work out the release tag
+        id: tag
+        run: |
+          echo "tag=v${{ needs.build.outputs.marketing }}-b${{ needs.build.outputs.build }}" >> "$GITHUB_OUTPUT"
+
+      # The "-release" artifact, not the plain one: see the comment beside both
+      # uploads in build-ipa.yml.
+      - name: Download the .ipa built above
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.build.outputs.name }}-release
+          path: dist
+
+      # Found by search rather than assumed from the name, so a change to the
+      # naming or to download-artifact can't publish a downloadURL that 404s.
+      # No `set -e` and no pipe into head: both made Ammy's version of this
+      # step fail without saying why (see its publish-source.yml).
+      - name: Locate the .ipa
+        id: ipa
+        run: |
+          set -u
+          ls -laR dist 2>/dev/null || echo "(no dist directory at all)"
+          FOUND=$(find dist -type f -name '*.ipa' -print -quit 2>/dev/null)
+          if [ -z "$FOUND" ]; then
+            echo "::error::No .ipa under dist/ after download; see the listing above."
+            exit 1
+          fi
+          echo "path=$FOUND" >> "$GITHUB_OUTPUT"
+          echo "Using $FOUND ($(stat -c%s "$FOUND") bytes)"
+
+      # The pushed commit's message is what a subscriber reads under What's
+      # New, minus the trailers that are for git.
+      - name: Write the changelog from the commit
+        run: |
+          set -euo pipefail
+          git log -1 --format='%B' HEAD \
+            | grep -viE '^(Co-Authored-By|Claude-Session|Signed-off-by): ' \
+            > changelog.txt || true
+          if ! grep -q '[^[:space:]]' changelog.txt; then
+            echo "Version ${{ needs.build.outputs.marketing }} (build ${{ needs.build.outputs.build }})" > changelog.txt
+          fi
+          echo "--- changelog ---"
+          cat changelog.txt
+
+      # The Release hosts the .ipa, so it has to exist before the source points
+      # at it: an entry whose downloadURL 404s is worse than none.
+      - name: Create the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body_path: changelog.txt
+          files: ${{ steps.ipa.outputs.path }}
+          fail_on_unmatched_files: true
+
+      - name: Check out the source (Ammy's repo)
+        uses: actions/checkout@v4
+        with:
+          repository: kaydenpmd/Ammy
+          ref: main
+          path: source-repo
+          ssh-key: ${{ secrets.SOURCE_DEPLOY_KEY }}
+
+      # Ammy's own build_source.py does the writing, so both apps' entries are
+      # made the same way. It takes one config with the source-wide settings
+      # and one "app" block; the source-wide settings come from Ammy's config,
+      # so the two repos can't disagree about them, and the app block from ours.
+      # The script leaves other apps' entries alone, Ammy's included.
+      #
+      # Ammy's CI pushes this same file. Each attempt starts from main's latest
+      # tip, and a push that lost the race is retried rather than forced.
+      - name: Add to the source
+        working-directory: source-repo
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/${{ needs.build.outputs.name }}.ipa"
+
+          for ATTEMPT in 1 2 3; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+
+            python3 - "$GITHUB_WORKSPACE/source.config.json" source.config.json "$RUNNER_TEMP/albums-source-config.json" <<'EOF'
+          import json, sys
+          albums = json.load(open(sys.argv[1], encoding="utf-8"))
+          merged = json.load(open(sys.argv[2], encoding="utf-8"))
+          merged["app"] = albums["app"]
+          with open(sys.argv[3], "w", encoding="utf-8") as out:
+              json.dump(merged, out, indent=2, ensure_ascii=False)
+          EOF
+
+            python3 scripts/build_source.py \
+              --config "$RUNNER_TEMP/albums-source-config.json" \
+              --source public/source.json \
+              --ipa "$GITHUB_WORKSPACE/${{ steps.ipa.outputs.path }}" \
+              --version "${{ needs.build.outputs.marketing }}" \
+              --build-version "${{ needs.build.outputs.build }}" \
+              --download-url "$DOWNLOAD_URL" \
+              --changelog-file "$GITHUB_WORKSPACE/changelog.txt"
+
+            git add public/source.json
+            if git diff --quiet --cached; then
+              echo "source.json unchanged; nothing to push."
+              exit 0
+            fi
+            git commit -q -m "source: publish Albums ${{ needs.build.outputs.marketing }} (build ${{ needs.build.outputs.build }})"
+            # public/** is in Ammy's own paths-ignore, so this doesn't release
+            # Ammy. Cloudflare Pages redeploys in a minute or two.
+            if git push -q origin HEAD:main; then
+              echo "Pushed to Ammy's main on attempt $ATTEMPT."
+              exit 0
+            fi
+            echo "Push rejected (Ammy's main moved); trying again."
+            sleep 5
+          done
+          echo "::error::Couldn't push source.json to Ammy's main after 3 attempts."
+          exit 1

@@ -1,16 +1,31 @@
 name: Build IPA and simulator app
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**.md"
-  # So a build can be forced by hand.
+  # No push trigger: publish-source.yml calls this on every push that can
+  # change the app, so there's one build per push, as in Ammy.
+  #
+  # Kept so a build can be forced by hand without releasing it.
   workflow_dispatch:
+  workflow_call:
+    outputs:
+      name:
+        description: "Artifact name, which is also the .ipa filename minus the extension."
+        value: ${{ jobs.build.outputs.name }}
+      marketing:
+        description: "MARKETING_VERSION as read out of project.yml."
+        value: ${{ jobs.build.outputs.marketing }}
+      build:
+        description: "CURRENT_PROJECT_VERSION, i.e. the commit count (git rev-list --count HEAD)."
+        value: ${{ jobs.build.outputs.build }}
 
 jobs:
   build:
     runs-on: macos-26
+
+    outputs:
+      name: ${{ steps.ver.outputs.name }}
+      marketing: ${{ steps.ver.outputs.marketing }}
+      build: ${{ steps.ver.outputs.build }}
 
     steps:
       # fetch-depth: 0 is load-bearing. The default checkout is shallow, and the
@@ -100,6 +115,17 @@ jobs:
           name: ${{ steps.ver.outputs.name }}
           path: ${{ steps.ver.outputs.name }}.ipa
           archive: false
+          if-no-files-found: error
+
+      # The same file again, with GitHub's normal archiving, for
+      # publish-source.yml to download. Ammy learned this on 18 Sept 2026, two
+      # failed releases deep: download-artifact unpacks an archive: false
+      # upload, and an .ipa is a zip, so the job would get Payload/ and no .ipa.
+      # Upload wraps and download unwraps only when both use default archiving.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.ver.outputs.name }}-release
+          path: ${{ steps.ver.outputs.name }}.ipa
           if-no-files-found: error
 
       # For Appetize, which only takes simulator builds (a .app, never an .ipa).

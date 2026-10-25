@@ -1,0 +1,22 @@
+{
+  "_comment": "Albums' listing in Kayden's Source (apps.kaydenpmd.net), which is built from Ammy's repo. publish-source.yml puts this 'app' block together with the source-wide settings in Ammy's own source.config.json, then runs Ammy's scripts/build_source.py against Ammy's public/source.json. Everything here is re-applied on every release, so a fix here goes live with the next one. appPermissions has to list every entitlement in the app and its share extension: AltStore refuses to install an app whose source didn't declare one, and SideStore would too if the source ever set \"version\": 2 (SideStore checks only sources with version >= 2, and Kayden's Source has no version key).",
+
+  "app": {
+    "name": "Albums",
+    "bundleIdentifier": "com.local.albums",
+    "developerName": "kaydenpmd",
+    "subtitle": "Save Apple Music albums for later",
+    "localizedDescription": "Albums is a place to stash Apple Music albums you want to listen to later. It looks like Apple Music's own Library: a two-column grid of artwork, with each album's page laid out the way Music lays one out.\n\nSAVE FROM APPLE MUSIC. On an album or a song, tap Share, then Albums. Or paste a link.\n\nLISTEN WHEN YOU'RE READY. Play opens the album in Apple Music. Mark albums as listened, and filter the grid to what you haven't heard yet.\n\nAlbum details come from Apple's own catalog, looked up by the album's ID, never guessed.\n\nIF SIDESTORE ASKS ABOUT APP EXTENSIONS, KEEP THEM. The share extension is what puts Albums in the Share menu; without it, albums can only be added by pasting a link.\n\nRequires iOS 26 or later.",
+    "iconURL": "https://apps.kaydenpmd.net/albums-icon.png",
+    "tintColor": "#007AFF",
+    "category": "entertainment",
+    "minOSVersion": "26.0",
+    "screenshots": [],
+    "appPermissions": {
+      "entitlements": [
+        "com.apple.security.application-groups"
+      ],
+      "privacy": {}
+    }
+  }
+}

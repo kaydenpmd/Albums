@@ -12,31 +12,38 @@ Album details come from Apple's public catalog. The lookup uses the album's ID f
 
 Requires iOS 26.
 
-## Build
+## Install
 
-There's no Xcode project in the repo. `project.yml` describes it, and GitHub Actions builds it on a Mac:
+Albums is in **Kayden's Source**, the same one as Ammy. In SideStore, add `https://apps.kaydenpmd.net/source.json` (or open `apps.kaydenpmd.net` on the phone and tap **Add to SideStore**), then install Albums from it. New builds show up there as updates.
 
-1. Push to `main`, or run **Build IPA and simulator app** by hand from the Actions tab.
-2. When it finishes, open the run and download the `Albums-<version>-b<build>-<sha>` artifact. It's the `.ipa` itself, not a zip.
-3. In SideStore, tap **+** and pick the `.ipa`.
+## Build and release
 
-The repo should be public: macOS runners cost 10× as many minutes on private repos.
+There's no Xcode project in the repo. `project.yml` describes it, and GitHub Actions builds it on a Mac.
+
+**Pushing to `main` is releasing.** **Publish to Kayden's Source** builds the app, publishes it as a GitHub Release here, and adds it to the source in Ammy's repo, which Cloudflare Pages serves. The newest commit's message, minus its trailers, becomes What's New in SideStore. A push that only touches `**.md`, `scripts/**` or `source.config.json` doesn't release; run the workflow by hand to publish one anyway.
+
+To build without releasing, run **Build IPA and simulator app** by hand from the Actions tab and download the `Albums-<version>-b<build>-<sha>` artifact. It's the `.ipa` itself, not a zip; in SideStore, tap **+** and pick it.
+
+`MARKETING_VERSION` in `project.yml` is the only version number to set by hand. The build number is a commit count.
 
 The run also uploads a simulator build (`…-simulator.zip`) for Appetize, which is handy for checking layout. The simulator has no Music app, so add albums there by pasting a link.
 
 ## Things to know
 
 - **The first time you share,** Albums may not be in the share sheet's app row. Scroll the row to the end, tap **More**, and turn Albums on (or drag it up into Favorites).
-- **App IDs on a free account.** Albums uses two of the ten App IDs a free Apple ID gets per week (one for the app, one for its share extension). It also takes one of the three active-app slots, alongside SideStore and Ammy.
+- **When SideStore asks about app extensions, keep them.** The share extension is what puts Albums in the Share menu; remove it and you can only paste links. On a free Apple ID, app extensions count toward the three active apps, so next to SideStore and Ammy pick **Keep App Extensions (Use Main Profile)**, which doesn't take another slot. That option hasn't been tried with Albums yet: if Albums then isn't in the share sheet, or the yellow notice appears, reinstall and pick **Register App ID for Each Extension**, which needs a free slot.
+- **App IDs on a free account.** A free Apple ID can register ten App IDs a week. Albums uses one, or two if its extension gets its own.
 - **The yellow notice** at the top of the library means this install has no App Group, so the share sheet and the app can't see each other's albums. Reinstall with SideStore. Pasting links works either way.
 
 ## Layout
 
 ```
-project.yml                      XcodeGen spec (no .xcodeproj is committed)
-.github/workflows/build-ipa.yml  CI: build, sign entitlements in, package the .ipa
-Albums/                          The app: grid, album page, add sheet
-ShareExtension/                  The share sheet extension
-Shared/                          Used by both: model, storage, lookup, artwork
-scripts/make_icon.py             Draws the app icon
+project.yml                           XcodeGen spec (no .xcodeproj is committed)
+.github/workflows/publish-source.yml  On push to main: build, Release, add to the source
+.github/workflows/build-ipa.yml       Called by the above: build, sign entitlements in, package
+source.config.json                    Albums' listing in the source (user-facing copy)
+Albums/                               The app: grid, album page, add sheet
+ShareExtension/                       The share sheet extension
+Shared/                               Used by both: model, storage, lookup, artwork
+scripts/make_icon.py                  Draws the app icon
 ```
