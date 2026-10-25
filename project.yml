@@ -1,0 +1,111 @@
+name: Albums
+
+options:
+  bundleIdPrefix: com.local
+  # iOS 26, the same floor as Ammy: the Liquid Glass controls and toolbar
+  # behaviour the layout is built around have no earlier equivalent.
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    # The only version number a human sets. The build number is a commit
+    # count, passed in by build-ipa.yml; the "1" is a placeholder for local builds.
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # This is the Swift *language mode*, not a compiler version.
+    # Valid values are 4.0 / 4.2 / 5.0 / 6.0 — "5.9" is rejected.
+    SWIFT_VERSION: "5.0"
+    # 1 is iPhone, 2 is iPad. The grid's columns adapt to the width.
+    TARGETED_DEVICE_FAMILY: "1,2"
+    GENERATE_INFOPLIST_FILE: NO
+
+targets:
+  Albums:
+    type: application
+    platform: iOS
+    sources:
+      - path: Albums
+      # Model, storage, lookup and artwork, compiled into both targets.
+      - path: Shared
+    dependencies:
+      # Embedded in Albums.app/PlugIns.
+      - target: ShareExtension
+
+    # Both targets ask for the same group, which is how the share sheet and the
+    # app see one library. SideStore renames it per installer when it re-signs;
+    # Shared/AppGroup.swift finds the new name. CI signs these entitlements into
+    # the binaries (build-ipa.yml): an unsigned binary carries none, and
+    # SideStore only grants what it finds there.
+    entitlements:
+      path: Albums/Albums.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.local.albums
+
+    info:
+      path: Albums/Info.plist
+      properties:
+        CFBundleDisplayName: Albums
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        # Read by Shared/AppGroup.swift as the name to start from.
+        AppGroupIdentifier: group.com.local.albums
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # All four, because iPad apps get Split View and Slide Over by default
+        # and both need every orientation.
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.local.albums
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+      - path: Shared
+
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.local.albums
+
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        # The name under the icon in the share sheet.
+        CFBundleDisplayName: Albums
+        # Must match the app's, or installing warns about a mismatched extension.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        AppGroupIdentifier: group.com.local.albums
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          # No storyboard: ShareViewController hosts the SwiftUI view itself.
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            # Offered for a single web link, or for text that may contain one.
+            # The Music app shares a link; other apps share text like
+            # "Listen on Apple Music: https://…", which is searched for a link.
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+
+    settings:
+      base:
+        # Has to start with the app's own bundle ID, or the embed step refuses it.
+        PRODUCT_BUNDLE_IDENTIFIER: com.local.albums.ShareExtension
+        # Catches any API an extension may not use, such as UIApplication.shared.
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES

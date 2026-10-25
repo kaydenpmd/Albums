@@ -1,0 +1,135 @@
+name: Build IPA and simulator app
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  # So a build can be forced by hand.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+      # fetch-depth: 0 is load-bearing. The default checkout is shallow, and the
+      # build number below is a commit count: against a shallow clone that
+      # counts 1, and every build would claim to be build 1.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Build identity comes from CI, not from anyone remembering to bump a
+      # number. MARKETING_VERSION stays the single human-set value in
+      # project.yml and is read back out here so the two can't drift.
+      - name: Work out the version
+        id: ver
+        run: |
+          set -euo pipefail
+          MARKETING=$(sed -nE 's/.*MARKETING_VERSION: *"?([^"]+)"?.*/\1/p' project.yml | head -1)
+          SHA=$(git rev-parse --short HEAD)
+          BUILD=$(git rev-list --count HEAD)
+          NAME="Albums-${MARKETING}-b${BUILD}-${SHA}"
+          echo "marketing=${MARKETING}" >> "$GITHUB_OUTPUT"
+          echo "build=${BUILD}" >> "$GITHUB_OUTPUT"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "Building ${NAME}"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # Also writes Albums/Info.plist, ShareExtension/Info.plist and both
+      # .entitlements files, which the signing step below reads.
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build for device
+        run: |
+          xcodebuild \
+            -project Albums.xcodeproj \
+            -scheme Albums \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            MARKETING_VERSION=${{ steps.ver.outputs.marketing }} \
+            CURRENT_PROJECT_VERSION=${{ steps.ver.outputs.build }} \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+      # Unlike Ammy, Albums needs its entitlements in the binary. SideStore
+      # decides what to grant from the entitlements it finds in the app's code
+      # signature, and an unsigned build has none — so the App Group the share
+      # extension and the app share would never be created, and albums shared
+      # from Apple Music would save into a library the app can't see.
+      #
+      # An ad-hoc signature ("-") carries the entitlements without needing a
+      # certificate; SideStore replaces it with a real one at install. Inside
+      # out: the extension first, then the app that contains it.
+      - name: Sign entitlements into the binaries
+        run: |
+          set -euo pipefail
+          APP=build/Build/Products/Release-iphoneos/Albums.app
+          codesign --force --sign - --entitlements ShareExtension/ShareExtension.entitlements "$APP/PlugIns/ShareExtension.appex"
+          codesign --force --sign - --entitlements Albums/Albums.entitlements "$APP"
+          # Printed so a missing group is visible in the log, not discovered on the phone.
+          for BUNDLE in "$APP/PlugIns/ShareExtension.appex" "$APP"; do
+            ENTITLEMENTS=$(codesign -d --entitlements - --xml "$BUNDLE")
+            echo "== $BUNDLE"
+            echo "$ENTITLEMENTS"
+            if ! echo "$ENTITLEMENTS" | grep -q "group.com.local.albums"; then
+              echo "::error::$BUNDLE was signed without the App Group entitlement."
+              exit 1
+            fi
+          done
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Albums.app Payload/
+          zip -qry "${{ steps.ver.outputs.name }}.ipa" Payload
+
+      # archive: false requires upload-artifact v7+. Without it GitHub zips the
+      # upload, and since an .ipa is already a zip you download a zip containing
+      # a zip and have to extract before SideStore will take it. With it, the
+      # browser download is the .ipa itself.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.ver.outputs.name }}
+          path: ${{ steps.ver.outputs.name }}.ipa
+          archive: false
+          if-no-files-found: error
+
+      # For Appetize, which only takes simulator builds (a .app, never an .ipa).
+      # Good for looking at the layout; the simulator has no Music app to share
+      # from, so add albums there by pasting a link.
+      - name: Build for simulator
+        run: |
+          xcodebuild \
+            -project Albums.xcodeproj \
+            -scheme Albums \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build-sim \
+            MARKETING_VERSION=${{ steps.ver.outputs.marketing }} \
+            CURRENT_PROJECT_VERSION=${{ steps.ver.outputs.build }} \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+      # The .app sits at the root of the archive, with no Payload/ wrapper.
+      # -y keeps symlinks as symlinks.
+      - name: Package for Appetize
+        run: |
+          cd build-sim/Build/Products/Release-iphonesimulator
+          zip -qry "$GITHUB_WORKSPACE/${{ steps.ver.outputs.name }}-simulator.zip" Albums.app
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.ver.outputs.name }}-simulator
+          path: ${{ steps.ver.outputs.name }}-simulator.zip
+          archive: false
+          if-no-files-found: error

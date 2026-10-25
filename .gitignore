@@ -1,0 +1,13 @@
+# XcodeGen generates these; only project.yml is committed.
+*.xcodeproj/
+Albums/Info.plist
+Albums/Albums.entitlements
+ShareExtension/Info.plist
+ShareExtension/ShareExtension.entitlements
+
+# macOS / build leftovers
+.DS_Store
+build/
+build-sim/
+Payload/
+*.ipa
