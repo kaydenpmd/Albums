@@ -6,9 +6,6 @@ struct ArtworkView: View {
     /// Pixel size to decode at; pick roughly the displayed size × screen scale.
     var pixelSize: Int = 600
     var cornerRadius: CGFloat = 7
-    /// The faint edge that keeps white covers from melting into a white page.
-    /// Off for edge-to-edge artwork, which has no edge to draw.
-    var showsHairline = true
 
     @State private var loadedImage: UIImage?
 
@@ -33,11 +30,10 @@ struct ArtworkView: View {
             }
             .aspectRatio(1, contentMode: .fit)
             .clipShape(.rect(cornerRadius: cornerRadius, style: .continuous))
+            // A faint edge, so white covers don't melt into a white page.
             .overlay {
-                if showsHairline {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-                }
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
             }
             .task(id: album.artworkURL) {
                 if let image = await ArtworkLoader.shared.image(for: album, pixelSize: pixelSize) {

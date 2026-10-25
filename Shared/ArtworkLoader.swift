@@ -10,8 +10,8 @@ final class ArtworkLoader {
     static let shared = ArtworkLoader()
 
     /// Pixel size of the artwork kept on disk; views downsample from it. Sized
-    /// for the album page's edge-to-edge artwork: 402 pt × 3 on an iPhone 17.
-    nonisolated static let storedPixelSize = 1200
+    /// for the album page's artwork: 309 pt × 3 on an iPhone 17.
+    nonisolated static let storedPixelSize = 1000
 
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
@@ -43,14 +43,13 @@ final class ArtworkLoader {
         return image
     }
 
-    /// The color along the bottom edge of the artwork, which the album page
-    /// fades the artwork into and uses as its background. nil until the
-    /// artwork is available.
+    /// The artwork's average color, which the album page uses as its
+    /// background. nil until the artwork is available.
     func pageColor(for album: Album) async -> UIColor? {
         if let color = pageColors[album.id] { return color }
         guard let image = await image(for: album, pixelSize: 600) else { return nil }
         let color = await Task.detached(priority: .userInitiated) {
-            Self.bottomEdgeColor(of: image)
+            Self.averageColor(of: image)
         }.value
         if let color { pageColors[album.id] = color }
         return color
@@ -113,9 +112,9 @@ final class ArtworkLoader {
         return UIImage(cgImage: image)
     }
 
-    /// Averages the bottom fifth of the image, drawn small: a 16 × 16 bitmap
-    /// is plenty for one color, and drawing it down does most of the averaging.
-    private nonisolated static func bottomEdgeColor(of image: UIImage) -> UIColor? {
+    /// Averages the image, drawn small: a 16 × 16 bitmap is plenty for one
+    /// color, and drawing it down does most of the averaging.
+    private nonisolated static func averageColor(of image: UIImage) -> UIColor? {
         guard let cgImage = image.cgImage else { return nil }
         let size = 16
         guard let space = CGColorSpace(name: CGColorSpace.sRGB),
@@ -131,8 +130,7 @@ final class ArtworkLoader {
         let bytesPerRow = context.bytesPerRow
         let pixels = data.bindMemory(to: UInt8.self, capacity: bytesPerRow * size)
         var red = 0, green = 0, blue = 0, count = 0
-        // Rows run top to bottom in the bitmap's memory, so the last rows are the bottom edge.
-        for row in (size - size / 5)..<size {
+        for row in 0..<size {
             for column in 0..<size {
                 let offset = row * bytesPerRow + column * 4
                 red += Int(pixels[offset])

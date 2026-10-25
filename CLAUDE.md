@@ -29,10 +29,15 @@ iOS squircle; `scripts/make_icon.py` draws it.
 **Layout is measured, not guessed.** The grid and album page follow
 measurements taken from Apple's iOS 26.4, 27 and 27.2 Music screenshots on a
 402 pt iPhone; the numbers are in the doc comments on `LibraryView` and
-`AlbumDetailView`. The album page is iOS 27's: edge-to-edge artwork fading
-into a background color taken from the artwork's bottom edge, with the page
+`AlbumDetailView`. The album page is iOS 26.4's: the artwork as a plain
+square on a background of the artwork's average color, with the page
 switched to light or dark to read on it (iOS 26's glass bars adapt by
 themselves).
+
+**Album artwork is never altered.** No fading, cropping or blending it into
+the page. iOS 27's edge-to-edge, faded version was built and then dropped on
+25 Oct 2026 because the owner hated it, and Apple's own rules discourage
+altering album art. Show it whole, in a square.
 
 ## Publishing
 
@@ -93,6 +98,6 @@ change is a coordinated read-modify-write (`NSFileCoordinator`) of the file, not
 a write of what's in memory, so neither process overwrites the other's albums.
 The app reloads when it becomes active. An unreadable file is moved aside
 (`Library-unreadable-<time>.json`), not overwritten. Artwork is cached as
-`Artwork/<id>-<pixels>.jpg` in the same container (1200 px, for the album
-page's edge-to-edge cover on a 3× screen), so covers the extension fetched
+`Artwork/<id>-<pixels>.jpg` in the same container (1000 px, for the album
+page's 309 pt cover on a 3× screen), so covers the extension fetched
 show in the app at once.

@@ -1,15 +1,18 @@
 import SwiftUI
 import UIKit
 
-/// An album's page, laid out like Apple Music's in iOS 27: the artwork edge to
-/// edge at the top, fading into a page color taken from its bottom edge, then
-/// the title block, a Play capsule between two round buttons, the tracks, and
-/// the release details. Play opens the album in Apple Music.
+/// An album's page, laid out like Apple Music's: the artwork as a plain square,
+/// on a page colored from the artwork, then the title block, a Play capsule
+/// between two round buttons, the tracks, and the release details. Play opens
+/// the album in Apple Music.
 ///
-/// Measured from Apple's iOS 26.4 and 27 screenshots on a 402 pt iPhone: title
-/// 22 pt bold, artist 20 pt, details 12 pt semibold; buttons 47 pt tall and
-/// 14 pt apart; track rows 50 pt. On iPad, where an edge-to-edge square would
-/// fill the screen, the artwork is a centered card instead, as in iOS 26.4.
+/// The artwork is shown whole and untouched, never faded or cropped into the
+/// page (the owner's call, 25 Oct 2026, after trying iOS 27's edge-to-edge
+/// version; it also keeps to Apple's rule against altering album art).
+///
+/// Measured from Apple's iOS 26.4 screenshots on a 402 pt iPhone: artwork 77%
+/// of the width, title 22 pt bold, artist 20 pt, details 12 pt semibold;
+/// buttons 47 pt tall and 14 pt apart; track rows 50 pt.
 struct AlbumDetailView: View {
     let albumID: Album.ID
 
@@ -18,7 +21,6 @@ struct AlbumDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var systemScheme
     @Environment(\.colorSchemeContrast) private var contrast
-    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var albumPendingDeletion: Album?
     @State private var isTitleInBar = false
     /// The album as last shown, kept so the page doesn't blank out while it
@@ -43,8 +45,6 @@ struct AlbumDetailView: View {
         }
     }
 
-    private var isFullBleed: Bool { sizeClass != .regular }
-
     /// The page's background, and whether light or dark text reads on it. With
     /// Increase Contrast on, Music keeps the system background, and so does this.
     private var palette: (background: Color, scheme: ColorScheme) {
@@ -56,7 +56,6 @@ struct AlbumDetailView: View {
 
     private func page(_ album: Album) -> some View {
         let palette = palette
-        let fullBleed = isFullBleed
         let titleBottom = headerTitleBottom
         return ScrollView {
             VStack(spacing: 0) {
@@ -69,20 +68,12 @@ struct AlbumDetailView: View {
             }
             .coordinateSpace(.named(Self.pageSpace))
         }
-        // Edge to edge means under the status bar and the navigation bar too.
-        .ignoresSafeArea(edges: fullBleed ? Edge.Set.top : Edge.Set())
-        // iOS 26 blurs scroll content under the bars by default, which would
-        // smear the top of the cover at rest. Off until the title is in the
-        // bar, where the blur keeps it readable.
-        .scrollEdgeEffectHidden(fullBleed && !isTitleInBar, for: .top)
         .background(palette.background)
         .animation(.easeInOut(duration: 0.3), value: pageColor)
-        // The title moves into the bar once the header's own title has gone
-        // under it: about 100 pt of status and navigation bar sit over
-        // edge-to-edge content.
+        // The title moves into the bar once the header's own title has
+        // scrolled up under it.
         .onScrollGeometryChange(for: Bool.self) { geometry in
-            let hiddenUnderBar: CGFloat = fullBleed ? 100 : 0
-            return geometry.contentOffset.y + geometry.contentInsets.top > titleBottom - hiddenUnderBar
+            geometry.contentOffset.y + geometry.contentInsets.top > titleBottom
         } action: { _, isPastHeader in
             withAnimation(.easeInOut(duration: 0.2)) { isTitleInBar = isPastHeader }
         }
@@ -115,34 +106,19 @@ struct AlbumDetailView: View {
     /// nonisolated because the geometry closures that use it may run off the main actor.
     private nonisolated static let pageSpace = "albumPage"
 
-    /// Edge to edge on a phone; a 77%-width card (capped for iPad) otherwise.
-    private nonisolated static func artworkSize(forWidth width: CGFloat, fullBleed: Bool) -> CGFloat {
-        fullBleed ? width : min(width * 0.77, 400)
+    /// 77% of the width (309 pt on a 402 pt iPhone), capped for iPad.
+    private nonisolated static func artworkSize(forWidth width: CGFloat) -> CGFloat {
+        min(width * 0.77, 400)
     }
 
     @ViewBuilder
     private func header(_ album: Album, background: Color) -> some View {
         VStack(spacing: 0) {
-            if isFullBleed {
-                ArtworkView(album: album, pixelSize: ArtworkLoader.storedPixelSize, cornerRadius: 0, showsHairline: false)
-                    .overlay {
-                        // The lower part of the artwork fades into the page.
-                        LinearGradient(
-                            stops: [
-                                .init(color: background.opacity(0), location: 0.55),
-                                .init(color: background, location: 1),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    }
-            } else {
-                ArtworkView(album: album, pixelSize: ArtworkLoader.storedPixelSize, cornerRadius: 10)
-                    .containerRelativeFrame(.horizontal) { width, _ in
-                        Self.artworkSize(forWidth: width, fullBleed: false)
-                    }
-                    .padding(.top, 8)
-            }
+            ArtworkView(album: album, pixelSize: ArtworkLoader.storedPixelSize, cornerRadius: 10)
+                .containerRelativeFrame(.horizontal) { width, _ in
+                    Self.artworkSize(forWidth: width)
+                }
+                .padding(.top, 8)
 
             Text(album.displayTitle)
                 .font(.title2.bold())
@@ -153,7 +129,7 @@ struct AlbumDetailView: View {
                 } action: { bottom in
                     headerTitleBottom = bottom
                 }
-                .padding(.top, isFullBleed ? 15 : 30)
+                .padding(.top, 30)
 
             Text(album.displayArtist)
                 .font(.title3)
