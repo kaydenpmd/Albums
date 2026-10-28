@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// The two-column album grid, modeled on Apple Music's Library › Albums.
+/// Tapping an album opens it in Apple Music; there is no album page.
 ///
 /// Measurements are from iOS 26 and 27.2 screenshots of Music's two-column
 /// tiles on a 402 pt iPhone: 20 pt margins, a 12 pt gap between columns,
@@ -8,6 +9,7 @@ import SwiftUI
 /// artist in 13 pt on one line each.
 struct LibraryView: View {
     @Environment(AlbumStore.self) private var store
+    @Environment(\.openURL) private var openURL
     @AppStorage("librarySort") private var sort: LibrarySort = .recentlyAdded
     @AppStorage("libraryFilter") private var listenedFilter: LibraryFilter = .all
     @State private var searchText = ""
@@ -28,10 +30,13 @@ struct LibraryView: View {
                 }
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                     ForEach(visibleAlbums) { album in
-                        NavigationLink(value: AlbumRoute(id: album.id)) {
+                        Button {
+                            openURL(album.url)
+                        } label: {
                             AlbumGridCell(album: album)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityHint("Opens in Apple Music")
                         .contextMenu {
                             AlbumMenuItems(album: album, store: store) {
                                 albumPendingDeletion = album
@@ -44,9 +49,6 @@ struct LibraryView: View {
                 .padding(.bottom, 24)
             }
             .navigationTitle("Albums")
-            .navigationDestination(for: AlbumRoute.self) { route in
-                AlbumDetailView(albumID: route.id)
-            }
             // In the drawer under the large title, where Music keeps "Find in
             // Albums"; iOS 26's default on iPhone is a bar at the bottom.
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Find in Albums")
@@ -149,10 +151,6 @@ struct LibraryView: View {
             }
         }
     }
-}
-
-struct AlbumRoute: Hashable {
-    let id: Album.ID
 }
 
 /// Shown when this install has no App Group, so the share extension and the app

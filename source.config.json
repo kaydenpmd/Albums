@@ -6,7 +6,7 @@
     "bundleIdentifier": "com.local.albums",
     "developerName": "kaydenpmd",
     "subtitle": "Save Apple Music albums for later",
-    "localizedDescription": "Albums is a place to stash Apple Music albums you want to listen to later. It looks like Apple Music's own Library: a two-column grid of artwork, with each album's page laid out the way Music lays one out.\n\nSAVE FROM APPLE MUSIC. On an album or a song, tap Share, then Albums. Or paste a link.\n\nLISTEN WHEN YOU'RE READY. Play opens the album in Apple Music. Mark albums as listened, and filter the grid to what you haven't heard yet.\n\nAlbum details come from Apple's own catalog, looked up by the album's ID, never guessed.\n\nIF SIDESTORE ASKS ABOUT APP EXTENSIONS, KEEP THEM. The share extension is what puts Albums in the Share menu; without it, albums can only be added by pasting a link.\n\nRequires iOS 26 or later.",
+    "localizedDescription": "Albums is a place to stash Apple Music albums you want to listen to later. It looks like Apple Music's own Library: a two-column grid of artwork.\n\nSAVE FROM APPLE MUSIC. On an album or a song, tap Share, then Albums. Or paste a link.\n\nLISTEN WHEN YOU'RE READY. Tap an album to open it in Apple Music. Mark albums as listened, and filter the grid to what you haven't heard yet.\n\nAlbum details come from Apple's own catalog, looked up by the album's ID, never guessed.\n\nIF SIDESTORE ASKS ABOUT APP EXTENSIONS, KEEP THEM. The share extension is what puts Albums in the Share menu; without it, albums can only be added by pasting a link.\n\nRequires iOS 26 or later.",
     "iconURL": "https://apps.kaydenpmd.net/albums-icon.png",
     "tintColor": "#007AFF",
     "category": "entertainment",

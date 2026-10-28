@@ -10,12 +10,12 @@ final class ArtworkLoader {
     static let shared = ArtworkLoader()
 
     /// Pixel size of the artwork kept on disk; views downsample from it. Sized
-    /// for the album page's artwork: 309 pt × 3 on an iPhone 17.
-    nonisolated static let storedPixelSize = 1000
+    /// for the largest place a cover appears, the share sheet's 220 pt card,
+    /// on a 3× screen.
+    nonisolated static let storedPixelSize = 700
 
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
-    private var pageColors: [Album.ID: UIColor] = [:]
 
     private init() {
         memory.totalCostLimit = 64 * 1024 * 1024
@@ -41,23 +41,6 @@ final class ArtworkLoader {
             memory.setObject(image, forKey: key as NSString, cost: pixelSize * pixelSize * 4)
         }
         return image
-    }
-
-    /// The artwork's average color, which the album page uses as its
-    /// background. nil until the artwork is available.
-    func pageColor(for album: Album) async -> UIColor? {
-        if let color = pageColors[album.id] { return color }
-        guard let image = await image(for: album, pixelSize: 600) else { return nil }
-        let color = await Task.detached(priority: .userInitiated) {
-            Self.averageColor(of: image)
-        }.value
-        if let color { pageColors[album.id] = color }
-        return color
-    }
-
-    /// Makes sure the album's artwork is saved to disk.
-    nonisolated static func prefetch(_ album: Album) async {
-        _ = await localFile(for: album)
     }
 
     nonisolated static func removeArtwork(for albumID: Album.ID) {
@@ -110,37 +93,6 @@ final class ArtworkLoader {
         ] as CFDictionary
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions) else { return nil }
         return UIImage(cgImage: image)
-    }
-
-    /// Averages the image, drawn small: a 16 × 16 bitmap is plenty for one
-    /// color, and drawing it down does most of the averaging.
-    private nonisolated static func averageColor(of image: UIImage) -> UIColor? {
-        guard let cgImage = image.cgImage else { return nil }
-        let size = 16
-        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                  data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
-                  space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-              )
-        else { return nil }
-        context.interpolationQuality = .medium
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
-        guard let data = context.data else { return nil }
-
-        let bytesPerRow = context.bytesPerRow
-        let pixels = data.bindMemory(to: UInt8.self, capacity: bytesPerRow * size)
-        var red = 0, green = 0, blue = 0, count = 0
-        for row in 0..<size {
-            for column in 0..<size {
-                let offset = row * bytesPerRow + column * 4
-                red += Int(pixels[offset])
-                green += Int(pixels[offset + 1])
-                blue += Int(pixels[offset + 2])
-                count += 1
-            }
-        }
-        let scale = CGFloat(count * 255)
-        return UIColor(red: CGFloat(red) / scale, green: CGFloat(green) / scale, blue: CGFloat(blue) / scale, alpha: 1)
     }
 
     private nonisolated static func fileURL(for albumID: Album.ID) -> URL {

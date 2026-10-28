@@ -24,20 +24,20 @@ default blue. Albums uses the default tint, and its icon is black on white
 (white on black in dark mode). The icon's tiles use 60% corner smoothing, the
 iOS squircle; `scripts/make_icon.py` draws it.
 
-**Play opens Apple Music.** Nothing plays inside Albums.
+**No album page: covers are links.** Tapping a cover opens the album in Apple
+Music, and long-press holds Listened, Share, Copy Link and Delete. An album
+page (big cover, tracks, Play) was built and then removed on 27 Oct 2026, the
+owner's call. Nothing plays inside Albums.
 
-**Layout is measured, not guessed.** The grid and album page follow
-measurements taken from Apple's iOS 26.4, 27 and 27.2 Music screenshots on a
-402 pt iPhone; the numbers are in the doc comments on `LibraryView` and
-`AlbumDetailView`. The album page is iOS 26.4's: the artwork as a plain
-square on a background of the artwork's average color, with the page
-switched to light or dark to read on it (iOS 26's glass bars adapt by
-themselves).
+**Layout is measured, not guessed.** The grid follows measurements taken
+from Apple's iOS 26 and 27.2 Music screenshots on a 402 pt iPhone; the numbers
+are in `LibraryView`'s doc comment.
 
 **Album artwork is never altered.** No fading, cropping or blending it into
-the page. iOS 27's edge-to-edge, faded version was built and then dropped on
-25 Oct 2026 because the owner hated it, and Apple's own rules discourage
-altering album art. Show it whole, in a square.
+anything. The album page's iOS 27-style edge-to-edge, faded cover was dropped
+on 25 Oct 2026 because the owner hated it (and Apple's own rules discourage
+altering album art), two days before the page itself went. Show it whole, in
+a square.
 
 ## Publishing
 
@@ -98,6 +98,6 @@ change is a coordinated read-modify-write (`NSFileCoordinator`) of the file, not
 a write of what's in memory, so neither process overwrites the other's albums.
 The app reloads when it becomes active. An unreadable file is moved aside
 (`Library-unreadable-<time>.json`), not overwritten. Artwork is cached as
-`Artwork/<id>-<pixels>.jpg` in the same container (1000 px, for the album
-page's 309 pt cover on a 3× screen), so covers the extension fetched
+`Artwork/<id>-<pixels>.jpg` in the same container (700 px, for the share
+sheet's 220 pt card on a 3× screen), so covers the extension fetched
 show in the app at once.

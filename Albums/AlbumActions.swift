@@ -1,13 +1,11 @@
 import SwiftUI
 
-/// What you can do with an album, offered from both the grid's long-press menu
-/// and the album page's "…" menu so the two never disagree.
+/// What you can do with an album from the grid's long-press menu. Opening it
+/// isn't here: tapping the album does that.
 struct AlbumMenuItems: View {
     let album: Album
     let store: AlbumStore
     let onDelete: () -> Void
-
-    @Environment(\.openURL) private var openURL
 
     // Music's album menu opens with a row of quick actions (Favorite, Share);
     // here the row holds Listened and Share.
@@ -28,11 +26,6 @@ struct AlbumMenuItems: View {
         }
         Section {
             Button {
-                openURL(album.url)
-            } label: {
-                Label("Open in Apple Music", systemImage: "arrow.up.forward.app")
-            }
-            Button {
                 UIPasteboard.general.url = album.url
             } label: {
                 Label("Copy Link", systemImage: "link")
@@ -49,15 +42,14 @@ struct AlbumMenuItems: View {
 extension View {
     /// Asks before deleting, as Apple Music does. `album` is the one waiting
     /// for an answer; setting it presents the question.
-    func confirmDeletion(of album: Binding<Album?>, in store: AlbumStore, onDeleted: @escaping () -> Void = {}) -> some View {
-        modifier(ConfirmDeletion(album: album, store: store, onDeleted: onDeleted))
+    func confirmDeletion(of album: Binding<Album?>, in store: AlbumStore) -> some View {
+        modifier(ConfirmDeletion(album: album, store: store))
     }
 }
 
 private struct ConfirmDeletion: ViewModifier {
     @Binding var album: Album?
     let store: AlbumStore
-    let onDeleted: () -> Void
 
     func body(content: Content) -> some View {
         content.confirmationDialog(
@@ -68,7 +60,6 @@ private struct ConfirmDeletion: ViewModifier {
         ) { album in
             Button("Delete Album", role: .destructive) {
                 withAnimation { store.delete(album) }
-                onDeleted()
             }
         } message: { album in
             Text("\u{201C}\(album.displayTitle)\u{201D} will be removed from Albums. It stays in Apple Music.")

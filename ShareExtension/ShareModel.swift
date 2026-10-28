@@ -67,7 +67,7 @@ final class ShareModel {
                 phase = .saved(added)
                 // On disk before the extension goes away, so the app shows it
                 // at once. Joins the card's own load rather than fetching twice.
-                _ = await ArtworkLoader.shared.image(for: added, pixelSize: 600)
+                _ = await ArtworkLoader.shared.image(for: added, pixelSize: ArtworkLoader.storedPixelSize)
             case .alreadySaved(let existing):
                 phase = .alreadySaved(existing)
             }

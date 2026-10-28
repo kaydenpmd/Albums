@@ -1,11 +1,11 @@
 # Albums
 
-A place to stash Apple Music albums you want to listen to later. It looks like Apple Music's own Library › Albums page: a two-column grid of artwork, with each album's page laid out the way Music lays one out.
+A place to stash Apple Music albums you want to listen to later. It looks like Apple Music's own Library › Albums page: a two-column grid of artwork, and tapping an album opens it in Apple Music.
 
 - **Save from Apple Music.** On an album (or a song), tap **Share**, then **Albums**. A card with the cover confirms the save, and the sheet closes itself.
 - **Or paste a link.** Tap **+** in the app.
-- **Play** opens the album in Apple Music. Tap a song to open the album at that song.
-- **Listened.** Tap the checkmark on an album's page (or long-press it in the grid) to mark it listened. The filter button shows All Albums, Not Listened or Listened.
+- **Tap an album** to open it in Apple Music.
+- **Long-press an album** to mark it listened, share it, copy its link or delete it. The filter button shows All Albums, Not Listened or Listened.
 - **Sort** from the **…** button: Recently Added, Title, Artist or Release Date. Pull down to search.
 
 Album details come from Apple's public catalog. The lookup uses the album's ID from the link, the same exact lookup Ammy and Issun use, and never searches by name. If you share while offline, the link is saved and the details fill in the next time you open the app.
@@ -42,7 +42,7 @@ project.yml                           XcodeGen spec (no .xcodeproj is committed)
 .github/workflows/publish-source.yml  On push to main: build, Release, add to the source
 .github/workflows/build-ipa.yml       Called by the above: build, sign entitlements in, package
 source.config.json                    Albums' listing in the source (user-facing copy)
-Albums/                               The app: grid, album page, add sheet
+Albums/                               The app: grid, add sheet
 ShareExtension/                       The share sheet extension
 Shared/                               Used by both: model, storage, lookup, artwork
 scripts/make_icon.py                  Draws the app icon

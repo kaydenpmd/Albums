@@ -112,26 +112,6 @@ extension Album {
 
     var displayArtist: String { isPending ? "Apple Music" : artist }
 
-    /// Release year, read in UTC because Apple stores release dates as midnight-ish UTC timestamps.
-    var releaseYear: Int? {
-        guard let releaseDate else { return nil }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .gmt
-        return calendar.component(.year, from: releaseDate)
-    }
-
-    var totalDuration: Duration? {
-        let millis = tracks.compactMap(\.durationMillis).reduce(0, +)
-        return millis > 0 ? .milliseconds(millis) : nil
-    }
-
-    /// Apple Music link that opens the album at a specific song.
-    func url(for track: Track) -> URL {
-        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
-        components.queryItems = [URLQueryItem(name: "i", value: track.id)]
-        return components.url ?? url
-    }
-
     /// Artwork URL at a given square pixel size. Apple's image CDN renders any size on request
     /// when the last path component is rewritten, e.g. `…/100x100bb.jpg` → `…/600x600bb.jpg`.
     func artworkURL(pixelSize: Int) -> URL? {

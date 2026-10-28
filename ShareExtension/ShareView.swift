@@ -60,7 +60,7 @@ private struct SavedAlbumCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ArtworkView(album: album, pixelSize: 600, cornerRadius: 10)
+            ArtworkView(album: album, pixelSize: ArtworkLoader.storedPixelSize, cornerRadius: 10)
                 .frame(width: 220)
                 .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
 

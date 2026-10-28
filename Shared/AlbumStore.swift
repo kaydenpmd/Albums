@@ -14,12 +14,6 @@ final class AlbumStore {
 
     private(set) var albums: [Album] = []
 
-    /// Pending albums saved from a song link are known as "song-<id>" until
-    /// their album is looked up, and then take the album's ID. This maps the
-    /// old ID to the new one, so a page opened on the pending album keeps
-    /// finding it.
-    private(set) var replacedIDs: [Album.ID: Album.ID] = [:]
-
     private let fileURL: URL
     private var isResolvingPending = false
 
@@ -41,11 +35,7 @@ final class AlbumStore {
     }
 
     func album(withID id: Album.ID) -> Album? {
-        if let album = albums.first(where: { $0.id == id }) {
-            return album
-        }
-        guard let newID = replacedIDs[id] else { return nil }
-        return albums.first { $0.id == newID }
+        albums.first { $0.id == id }
     }
 
     /// Saves `album`, unless it's already saved. Saving the details of an album
@@ -54,7 +44,6 @@ final class AlbumStore {
     @discardableResult
     func add(_ album: Album) -> AddOutcome {
         var outcome = AddOutcome.added(album)
-        var resolvedSongIDs: [Album.ID] = []
         mutate { list in
             if let index = list.firstIndex(where: { $0.id == album.id }) {
                 if list[index].isPending, !album.isPending {
@@ -66,13 +55,11 @@ final class AlbumStore {
             } else {
                 list.append(album)
             }
+            // A song waiting as "song-<id>" whose album this is: the album
+            // stands in for it now.
             guard !album.isPending else { return }
             let songIDs = Set(album.tracks.map { "song-\($0.id)" })
-            resolvedSongIDs = list.filter { $0.isPending && songIDs.contains($0.id) }.map(\.id)
-            list.removeAll { resolvedSongIDs.contains($0.id) }
-        }
-        for id in resolvedSongIDs {
-            replacedIDs[id] = album.id
+            list.removeAll { $0.isPending && songIDs.contains($0.id) }
         }
         return outcome
     }
@@ -107,9 +94,6 @@ final class AlbumStore {
                 } else {
                     list[index] = list[index].updatingDetails(from: fetched)
                 }
-            }
-            if fetched.id != pending.id {
-                replacedIDs[pending.id] = fetched.id
             }
         }
     }
