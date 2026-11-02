@@ -30,18 +30,14 @@ struct LibraryView: View {
                 }
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                     ForEach(visibleAlbums) { album in
-                        Button {
-                            openURL(album.url)
-                        } label: {
-                            AlbumGridCell(album: album)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Opens in Apple Music")
-                        .contextMenu {
-                            AlbumMenuItems(album: album, store: store) {
-                                albumPendingDeletion = album
-                            }
-                        }
+                        AlbumGridItem(
+                            album: album,
+                            open: { openURL(album.url) },
+                            toggleListened: {
+                                withAnimation { store.setListened(!album.isListened, for: album) }
+                            },
+                            delete: { albumPendingDeletion = album }
+                        )
                     }
                 }
                 .padding(.horizontal, 20)

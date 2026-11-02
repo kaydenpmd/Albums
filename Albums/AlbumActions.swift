@@ -1,41 +1,63 @@
 import SwiftUI
 
-/// What you can do with an album from the grid's long-press menu. Opening it
-/// isn't here: tapping the album does that.
-struct AlbumMenuItems: View {
-    let album: Album
-    let store: AlbumStore
-    let onDelete: () -> Void
+/// The card above the long-press menu, like Music's: the cover, then the title
+/// over the artist, and a ">" because tapping the card opens the album (see
+/// `AlbumGridItem`). Measured from the owner's iOS 26 screenshot on a 375 pt
+/// iPhone: a 300 pt card; a 92 pt cover inset 16 pt, its 16 pt corners
+/// concentric with the card's 32 pt ones; a 16 pt gap to the text; a 17 pt
+/// semibold title over a 15 pt artist; a regular-weight chevron 12 pt from the
+/// edge.
+struct AlbumMenuPreview: View {
+    static let width: CGFloat = 300
 
-    // Music's album menu opens with a row of quick actions (Favorite, Share);
-    // here the row holds Listened and Share.
+    let album: Album
+
     var body: some View {
-        ControlGroup {
-            Button {
-                withAnimation { store.setListened(!album.isListened, for: album) }
-            } label: {
-                if album.isListened {
-                    Label("Listened", systemImage: "checkmark.circle.fill")
-                } else {
-                    Label("Listened", systemImage: "checkmark.circle")
+        // No stack spacing: it would also go either side of the Spacer and
+        // squeeze the title onto two lines. The gaps are padding instead.
+        HStack(spacing: 0) {
+            // 600 px is the grid's size, already in memory, so the card
+            // appears with its cover rather than a placeholder.
+            ArtworkView(album: album, pixelSize: 600, cornerRadius: 16)
+                .frame(width: 92, height: 92)
+                .padding(.trailing, 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                title
+                    .font(.headline)
+                    .lineLimit(2)
+
+                HStack(spacing: 3) {
+                    if album.isListened {
+                        Image(systemName: "checkmark.circle.fill")
+                            .imageScale(.small)
+                    }
+                    Text(album.displayArtist)
+                        .lineLimit(1)
                 }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             }
-            ShareLink(item: album.url) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.forward")
+                .font(.body)
+                .foregroundStyle(.tertiary)
         }
-        Section {
-            Button {
-                UIPasteboard.general.url = album.url
-            } label: {
-                Label("Copy Link", systemImage: "link")
-            }
-        }
-        Section {
-            Button(role: .destructive, action: onDelete) {
-                Label("Delete from Library", systemImage: "trash")
-            }
-        }
+        .padding(.vertical, 16)
+        .padding(.leading, 16)
+        .padding(.trailing, 12)
+        .frame(width: Self.width)
+        .background(Color(.secondarySystemGroupedBackground))
+    }
+
+    /// The title, with the explicit "E" after it when there is one, flowing
+    /// with the text if the title wraps.
+    private var title: Text {
+        guard album.isExplicit else { return Text(album.displayTitle) }
+        let badge = Text(Image(systemName: "e.square.fill")).foregroundStyle(.secondary)
+        return Text("\(album.displayTitle) \(badge)")
     }
 }
 

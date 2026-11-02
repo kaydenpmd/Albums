@@ -29,6 +29,16 @@ Music, and long-press holds Listened, Share, Copy Link and Delete. An album
 page (big cover, tracks, Play) was built and then removed on 27 Oct 2026, the
 owner's call. Nothing plays inside Albums.
 
+**The long-press menu copies Music's design, not its buttons.** A card with
+the cover, title, artist and a ">" on top, a row of three (Listened, Copy
+Link, Share), then Delete from Library on its own. Only what manages the
+Albums library goes in it (owner, 1 Nov 2026). No Play, Shuffle or Play Next:
+a tap already opens the album in Music, where Play is one more tap either way.
+Tapping the card opens the album, as Music's card does. That needs UIKit's
+context menu (`willPerformPreviewActionForMenuWith`): SwiftUI's
+`.contextMenu` shows the same card but can't act on a tap on it, so each grid
+cell is `AlbumGridItem`, a UIKit view controller hosting the SwiftUI cell.
+
 **Layout is measured, not guessed.** The grid follows measurements taken
 from Apple's iOS 26 and 27.2 Music screenshots on a 402 pt iPhone; the numbers
 are in `LibraryView`'s doc comment.
