@@ -11,7 +11,6 @@ struct LibraryView: View {
     @Environment(AlbumStore.self) private var store
     @Environment(\.openURL) private var openURL
     @AppStorage("librarySort") private var sort: LibrarySort = .recentlyAdded
-    @AppStorage("libraryFilter") private var listenedFilter: LibraryFilter = .all
     @State private var searchText = ""
     @State private var isAddingAlbum = false
     @State private var albumPendingDeletion: Album?
@@ -33,9 +32,6 @@ struct LibraryView: View {
                         AlbumGridItem(
                             album: album,
                             open: { openURL(album.url) },
-                            toggleListened: {
-                                withAnimation { store.setListened(!album.isListened, for: album) }
-                            },
                             delete: { albumPendingDeletion = album }
                         )
                     }
@@ -68,7 +64,7 @@ struct LibraryView: View {
     }
 
     private var visibleAlbums: [Album] {
-        var albums = store.albums.filter { listenedFilter.includes($0) }
+        var albums = store.albums
         let query = searchQuery
         if !query.isEmpty {
             albums = albums.filter {
@@ -78,27 +74,12 @@ struct LibraryView: View {
         return sort.sorted(albums)
     }
 
-    // Filter, then "…" for sorting, as Music has them; then Add, which Music
-    // doesn't need. On iOS 26 the three share one glass capsule.
+    // "…" for sorting, as Music has it, then Add, which Music doesn't need.
+    // Music's filter button is left out: Albums is just the one list. On
+    // iOS 26 the two share one glass capsule.
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .topBarTrailing) {
-            Menu {
-                Picker("Filter", selection: $listenedFilter) {
-                    ForEach(LibraryFilter.allCases) { option in
-                        Label(option.label, systemImage: option.systemImage).tag(option)
-                    }
-                }
-                .pickerStyle(.inline)
-            } label: {
-                Label(
-                    "Filter",
-                    systemImage: listenedFilter == .all
-                        ? "line.3.horizontal.decrease"
-                        : "line.3.horizontal.decrease.circle.fill"
-                )
-            }
-
             Menu {
                 Picker("Sort By", selection: $sort) {
                     ForEach(LibrarySort.allCases) { option in
@@ -130,21 +111,8 @@ struct LibraryView: View {
                     .buttonStyle(.borderedProminent)
             }
         } else if visibleAlbums.isEmpty {
-            if !searchQuery.isEmpty {
-                ContentUnavailableView.search(text: searchQuery)
-            } else if listenedFilter == .notListened {
-                ContentUnavailableView(
-                    "All Caught Up",
-                    systemImage: "checkmark.circle",
-                    description: Text("You've listened to everything you saved.")
-                )
-            } else {
-                ContentUnavailableView(
-                    "Nothing Listened Yet",
-                    systemImage: "circle",
-                    description: Text("Albums you mark as listened show up here.")
-                )
-            }
+            // Only a search can hide every album.
+            ContentUnavailableView.search(text: searchQuery)
         }
     }
 }
@@ -186,16 +154,9 @@ struct AlbumGridCell: View {
                 }
                 .foregroundStyle(album.isPending ? .secondary : .primary)
 
-                HStack(spacing: 3) {
-                    if album.isListened {
-                        Image(systemName: "checkmark.circle.fill")
-                            .imageScale(.small)
-                            .accessibilityLabel("Listened")
-                    }
-                    Text(album.displayArtist)
-                        .lineLimit(1)
-                }
-                .foregroundStyle(.secondary)
+                Text(album.displayArtist)
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
             }
             .font(.footnote)
             .padding(.top, 5)

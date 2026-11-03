@@ -69,13 +69,6 @@ final class AlbumStore {
         ArtworkLoader.removeArtwork(for: album.id)
     }
 
-    func setListened(_ listened: Bool, for album: Album) {
-        mutate { list in
-            guard let index = list.firstIndex(where: { $0.id == album.id }) else { return }
-            list[index].listenedAt = listened ? (list[index].listenedAt ?? .now) : nil
-        }
-    }
-
     /// Fetches details for albums the share extension saved while offline.
     func resolvePendingAlbums(using service: AlbumMetadataService = AlbumMetadataService()) async {
         guard !isResolvingPending else { return }

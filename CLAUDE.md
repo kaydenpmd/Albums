@@ -25,13 +25,19 @@ default blue. Albums uses the default tint, and its icon is black on white
 iOS squircle; `scripts/make_icon.py` draws it.
 
 **No album page: covers are links.** Tapping a cover opens the album in Apple
-Music, and long-press holds Listened, Share, Copy Link and Delete. An album
+Music, and long-press holds Copy Link, Share and Delete. An album
 page (big cover, tracks, Play) was built and then removed on 27 Oct 2026, the
 owner's call. Nothing plays inside Albums.
 
+**One list, no listened marks.** Marking albums as listened, and the filter
+for Listened and Not Listened, were removed on 2 Nov 2026, the owner's call:
+Albums is just the main list. Libraries saved before then may still have a
+`listenedAt` on each album; it's ignored when read and dropped on the next
+write.
+
 **The long-press menu copies Music's design, not its buttons.** A card with
-the cover, title, artist and a ">" on top, a row of three (Listened, Copy
-Link, Share), then Delete from Library on its own. Only what manages the
+the cover, title, artist and a ">" on top, a row of two (Copy Link, Share),
+then Delete from Library on its own. Only what manages the
 Albums library goes in it (owner, 1 Nov 2026). No Play, Shuffle or Play Next:
 a tap already opens the album in Music, where Play is one more tap either way.
 Tapping the card opens the album, as Music's card does. That needs UIKit's

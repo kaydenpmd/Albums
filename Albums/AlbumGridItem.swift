@@ -13,7 +13,6 @@ import UIKit
 struct AlbumGridItem: UIViewControllerRepresentable {
     let album: Album
     let open: () -> Void
-    let toggleListened: () -> Void
     let delete: () -> Void
 
     func makeUIViewController(context: Context) -> AlbumGridItemController {
@@ -59,7 +58,6 @@ final class AlbumGridItemController: UIViewController, UIContextMenuInteractionD
         AlbumGridButton(
             album: item.album,
             open: item.open,
-            toggleListened: item.toggleListened,
             share: { [weak self] in self?.share() },
             delete: item.delete
         )
@@ -127,22 +125,14 @@ final class AlbumGridItemController: UIViewController, UIContextMenuInteractionD
         return preview
     }
 
-    /// Music's layout with Albums' own actions: a row of three with the icon
-    /// over the label, then Delete from Library on its own. Only what manages
-    /// the library (the owner's call, 1 Nov 2026); playing is Music's job.
-    /// Music's row uses filled symbols where its list rows use outlines.
-    /// Listened is the one outline in the row while the album isn't listened,
-    /// so the row shows its state.
+    /// Music's layout with Albums' own actions: a row with the icon over the
+    /// label, then Delete from Library on its own. Only what manages the
+    /// library (the owner's call, 1 Nov 2026); playing is Music's job. Music's
+    /// row uses filled symbols where its list rows use outlines.
     private func makeMenu() -> UIMenu {
         let item = item
         let album = item.album
 
-        let listened = UIAction(
-            title: "Listened",
-            image: UIImage(systemName: album.isListened ? "checkmark.circle.fill" : "checkmark.circle")
-        ) { _ in
-            item.toggleListened()
-        }
         let copyLink = UIAction(title: "Copy Link", image: UIImage(systemName: "link.circle.fill")) { _ in
             UIPasteboard.general.url = album.url
         }
@@ -158,7 +148,7 @@ final class AlbumGridItemController: UIViewController, UIContextMenuInteractionD
         }
 
         return UIMenu(children: [
-            UIMenu(options: .displayInline, preferredElementSize: .medium, children: [listened, copyLink, share]),
+            UIMenu(options: .displayInline, preferredElementSize: .medium, children: [copyLink, share]),
             UIMenu(options: .displayInline, children: [delete]),
         ])
     }
@@ -177,7 +167,6 @@ final class AlbumGridItemController: UIViewController, UIContextMenuInteractionD
 struct AlbumGridButton: View {
     let album: Album
     let open: () -> Void
-    let toggleListened: () -> Void
     let share: () -> Void
     let delete: () -> Void
 
@@ -187,7 +176,6 @@ struct AlbumGridButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens in Apple Music")
-        .accessibilityAction(named: Text(album.isListened ? "Mark as Not Listened" : "Mark as Listened"), toggleListened)
         .accessibilityAction(named: Text("Copy Link")) {
             UIPasteboard.general.url = album.url
         }

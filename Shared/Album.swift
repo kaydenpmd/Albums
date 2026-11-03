@@ -20,8 +20,6 @@ struct Album: Identifiable, Codable, Hashable, Sendable {
     var copyright: String?
     var tracks: [Track]
     var addedAt: Date
-    /// When the album was marked as listened. `nil` means it's still waiting to be heard.
-    var listenedAt: Date?
 
     init(
         id: String,
@@ -35,8 +33,7 @@ struct Album: Identifiable, Codable, Hashable, Sendable {
         isExplicit: Bool = false,
         copyright: String? = nil,
         tracks: [Track] = [],
-        addedAt: Date = .now,
-        listenedAt: Date? = nil
+        addedAt: Date = .now
     ) {
         self.id = id
         self.title = title
@@ -50,7 +47,6 @@ struct Album: Identifiable, Codable, Hashable, Sendable {
         self.copyright = copyright
         self.tracks = tracks
         self.addedAt = addedAt
-        self.listenedAt = listenedAt
     }
 
     /// An album saved without its details (the share extension was offline). The app fills
@@ -80,12 +76,11 @@ struct Album: Identifiable, Codable, Hashable, Sendable {
         copyright = try? c.decodeIfPresent(String.self, forKey: .copyright)
         tracks = (try? c.decodeIfPresent([Track].self, forKey: .tracks)) ?? []
         addedAt = (try? c.decodeIfPresent(Date.self, forKey: .addedAt)) ?? .now
-        listenedAt = try? c.decodeIfPresent(Date.self, forKey: .listenedAt)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, artist, url, artworkURL, releaseDate, genre, trackCount
-        case isExplicit, copyright, tracks, addedAt, listenedAt
+        case isExplicit, copyright, tracks, addedAt
     }
 }
 
@@ -106,8 +101,6 @@ extension Album {
     /// True while the album is still waiting for its details (see `pending(for:)`).
     var isPending: Bool { title.isEmpty }
 
-    var isListened: Bool { listenedAt != nil }
-
     var displayTitle: String { isPending ? "Fetching Details…" : title }
 
     var displayArtist: String { isPending ? "Apple Music" : artist }
@@ -127,11 +120,10 @@ extension Album {
         return components?.url ?? resized
     }
 
-    /// Fills in fetched details while keeping what belongs to the user (when it was saved and listened to).
+    /// Fills in fetched details while keeping what belongs to the user (when it was saved).
     func updatingDetails(from fetched: Album) -> Album {
         var updated = fetched
         updated.addedAt = addedAt
-        updated.listenedAt = listenedAt
         return updated
     }
 }

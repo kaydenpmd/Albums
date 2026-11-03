@@ -5,7 +5,7 @@ A place to stash Apple Music albums you want to listen to later. It looks like A
 - **Save from Apple Music.** On an album (or a song), tap **Share**, then **Albums**. A card with the cover confirms the save, and the sheet closes itself.
 - **Or paste a link.** Tap **+** in the app.
 - **Tap an album** to open it in Apple Music.
-- **Long-press an album** to mark it listened, share it, copy its link or delete it. Tapping the card at the top of that menu opens the album too. The filter button shows All Albums, Not Listened or Listened.
+- **Long-press an album** to copy its link, share it or delete it. Tapping the card at the top of that menu opens the album too.
 - **Sort** from the **…** button: Recently Added, Title, Artist or Release Date. Pull down to search.
 
 Album details come from Apple's public catalog. The lookup uses the album's ID from the link, the same exact lookup Ammy and Issun use, and never searches by name. If you share while offline, the link is saved and the details fill in the next time you open the app.

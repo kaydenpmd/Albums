@@ -39,37 +39,3 @@ enum LibrarySort: String, CaseIterable, Identifiable {
         return primary == .orderedAscending
     }
 }
-
-/// Which albums the grid shows, from the filter button, the way Apple Music's
-/// filter offers All Albums, Favorites and Downloaded.
-enum LibraryFilter: String, CaseIterable, Identifiable {
-    case all
-    case notListened
-    case listened
-
-    var id: Self { self }
-
-    var label: String {
-        switch self {
-        case .all: "All Albums"
-        case .notListened: "Not Listened"
-        case .listened: "Listened"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .all: "square.stack"
-        case .notListened: "circle"
-        case .listened: "checkmark.circle"
-        }
-    }
-
-    func includes(_ album: Album) -> Bool {
-        switch self {
-        case .all: true
-        case .notListened: !album.isListened
-        case .listened: album.isListened
-        }
-    }
-}

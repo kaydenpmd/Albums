@@ -27,16 +27,10 @@ struct AlbumMenuPreview: View {
                     .font(.headline)
                     .lineLimit(2)
 
-                HStack(spacing: 3) {
-                    if album.isListened {
-                        Image(systemName: "checkmark.circle.fill")
-                            .imageScale(.small)
-                    }
-                    Text(album.displayArtist)
-                        .lineLimit(1)
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text(album.displayArtist)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer(minLength: 8)
