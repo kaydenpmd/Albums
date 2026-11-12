@@ -150,11 +150,12 @@ show in the app at once.
 It compiled in CI with no Swift errors or warnings, and Kayden's Source offers
 it. The live listing has no subtitle or description (checked 11 Nov 2026).
 
-**Not yet seen on the owner's phone:**
-- Whether Albums is installed at all. The first try (25 Oct 2026) stopped at
-  the free account's three active apps (SideStore, Ammy, Tails).
+**On the owner's phone:** build 6 is installed, and on 11 Nov 2026 the owner
+said "it's working as intended so far". (The first install, on 25 Oct 2026,
+had stopped at the free account's three active apps: SideStore, Ammy, Tails.)
+They didn't report on these one by one, so they're still unconfirmed:
 - The share extension and App Group under "Keep App Extensions (Use Main
-  Profile)" (see Publishing).
+  Profile)" (see Publishing). Which option the owner picked isn't recorded.
 - The long-press menu (build 5 onward):
   - A long-press, then lifting, shouldn't open Music.
   - A scroll that starts on a cover should only scroll.
