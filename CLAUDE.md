@@ -109,11 +109,10 @@ toward a free Apple ID's three active apps (SideStore's
 `activeAppLimitIncludesExtensions`), so SideStore offers to strip Albums'
 extension at install. Stripping it removes the share sheet entry.
 "Keep App Extensions (Use Main Profile)" signs the extension with the app's
-own profile, so it takes no extra slot next to SideStore and Ammy. The share
-sheet works on the owner's phone (11 Nov 2026), but which of the two options
-they picked isn't recorded, so whether "Use Main Profile" alone is enough is
-still unverified; if it isn't, "Register App ID for Each Extension" does, at
-the cost of a slot.
+own profile, so it takes no extra slot next to SideStore and Ammy. That's the
+option the owner picked, and the share sheet and App Group work with it on
+their phone (11 Nov 2026). "Register App ID for Each Extension" is the
+fallback if that ever changes, at the cost of a slot.
 Publishing runs one at a time (`concurrency` in `publish-source.yml`) and only
 from `main`.
 
@@ -154,8 +153,8 @@ it. The live listing has no subtitle or description (checked 11 Nov 2026).
 
 **On the owner's phone:** build 6 is installed, and on 11 Nov 2026 the owner
 said "it's working as intended so far". Saving from Music's share sheet works
-too, so the share extension and the App Group do (which extension option was
-picked at install isn't recorded; see Publishing). The first install, on 25
+too, so the share extension and the App Group do, installed with "Keep App
+Extensions (Use Main Profile)" (see Publishing). The first install, on 25
 Oct 2026, had stopped at the free account's three active apps: SideStore,
 Ammy, Tails. They didn't report on these one by one, so they're still
 unconfirmed:
